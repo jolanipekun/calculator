@@ -1,54 +1,101 @@
 import React from "react";
 import { render, fireEvent, screen } from "@testing-library/react";
-//import App from "../components/App"; // Adjust import based on file structure
 import App from "./App";
 import "@testing-library/jest-dom"; // Include for toHaveTextContent
 
-describe("App Component", () => {
-  it("renders the Display and ButtonPanel components", () => {
-    render(<App />);
+class CalculatorTest {
+  static clickButtons(sequence) {
+    sequence.forEach(button => {
+      fireEvent.click(screen.getByRole("button", { name: button }));
+    });
+  }
 
-    // Check that the display initially shows '0'
-    expect(screen.getByTestId("display")).toHaveTextContent("0");
+  static assertDisplayValue(expected) {
+    const displayValue = screen.getByTestId("display").textContent;
+    expect(displayValue).toBe(expected);
+  }
 
-    // Check if all necessary buttons are rendered using getByRole
-    expect(screen.getByRole("button", { name: "1" })).toBeInTheDocument();
-    expect(screen.getByTestId("button-AC")).toBeInTheDocument();
-    expect(screen.getByTestId("button-+/-")).toBeInTheDocument();
-    expect(screen.getByTestId("button-%")).toBeInTheDocument();
-    expect(screen.getByTestId("button-=")).toBeInTheDocument();
-    expect(screen.getByTestId("button--")).toBeInTheDocument();
-    expect(screen.getByTestId("button-+")).toBeInTheDocument();
-    expect(screen.getByTestId("button-.")).toBeInTheDocument();
+  initialize() {
+    this.app = render(<App />);
+    if (!this.app) {
+      throw new Error("Failed to render the App component");
+    }
+  }
+
+  clickButtons(sequence) {
+    sequence.forEach(button => {
+      fireEvent.click(screen.getByRole("button", { name: button }));
+    });
+  }
+
+  getDisplayValue() {
+    return screen.getByTestId("display").textContent;
+  }
+
+  assertDisplayValue(expected) {
+    expect(this.getDisplayValue()).toBe(expected);
+  }
+
+  performOperation(testCase) {
+    const { input, expected } = testCase;
+    this.clickButtons(input);
+    this.assertDisplayValue(expected);
+  }
+}
+
+describe("Calculator App Component Tests", () => {
+  let calculator;
+
+  beforeEach(() => {
+    calculator = new CalculatorTest();
+    calculator.initialize();
   });
 
-  it("updates the display when a button is clicked", () => {
-    render(<App />);
-    // Simulate button click
-    fireEvent.click(screen.getByRole("button", { name: "1" })); // Click the "1" button
-
-    // Verify display updates
-    //// Use getByTestId to select the display and check its content
-    expect(screen.getByTestId("display")).toHaveTextContent("1");
-
-    fireEvent.click(screen.getByRole("button", { name: "." })); // Click the "1" button
-    expect(screen.getByTestId("display")).toHaveTextContent(".");
+  it("should render initial state correctly", () => {
+    calculator.assertDisplayValue("0");
   });
 
-  it("performs operations correctly", () => {
-    render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: "5" }));
-    fireEvent.click(screen.getByRole("button", { name: "+" }));
-    fireEvent.click(screen.getByRole("button", { name: "3" }));
-    fireEvent.click(screen.getByRole("button", { name: "=" }));
-    //expect(screen.getByText("8")).toBeInTheDocument(); // Result of 5 + 3
-    // Verify the display shows the correct result
-    expect(screen.getByTestId("display")).toHaveTextContent("8");
+  it("should handle single digit input", () => {
+    calculator.performOperation({ input: ["7"], expected: "7" });
+  });
 
-    fireEvent.click(screen.getByRole("button", { name: "5" }));
-    fireEvent.click(screen.getByRole("button", { name: "-" }));
-    fireEvent.click(screen.getByRole("button", { name: "3" }));
-    fireEvent.click(screen.getByRole("button", { name: "=" }));
-    expect(screen.getByTestId("display")).toHaveTextContent("2");
+  it("should handle addition correctly", () => {
+    calculator.performOperation({ input: ["5", "+", "3", "="], expected: "8" });
+  });
+
+  it("should handle subtraction correctly", () => {
+    calculator.performOperation({ input: ["9", "-", "4", "="], expected: "5" });
+  });
+
+  it("should handle multiplication correctly", () => {
+    calculator.performOperation({
+      input: ["6", "x", "2", "="],
+      expected: "12",
+    });
+  });
+
+  it("should handle decimal inputs correctly", () => {
+    calculator.performOperation({ input: ["1", ".", "2"], expected: "1.2" });
+  });
+
+  it("should handle clearing the display using AC", () => {
+    calculator.performOperation({
+      input: ["5", "+", "3", "AC"],
+      expected: "0",
+    });
+  });
+
+  it("should handle mixed operations", () => {
+    calculator.performOperation({
+      input: ["5", "+", "3", "=", "-", "2", "="],
+      expected: "6",
+    });
+  });
+
+  it("should reset the calculator and handle new inputs after AC", () => {
+    calculator.performOperation({
+      input: ["9", "+", "6", "AC", "3", "+", "3", "="],
+      expected: "6",
+    });
   });
 });
